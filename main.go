@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand/v2"
 	"os"
 	"strings"
 	"time"
@@ -11,8 +12,9 @@ import (
 )
 
 const (
-	CELL   = "󱓻 "
-	PERIOD = 90
+	CELL            = "󱓻 "
+	PERIOD          = 90
+	LIFE_PERCENTAGE = 30
 )
 
 type model struct {
@@ -50,10 +52,17 @@ func (m *model) resizeGrid(w, h int) {
 }
 
 func (m *model) randomGrid() {
-	for i := 0; i < len(m.a) && i < 15; i++ {
-		for j := 0; j < len(m.a[i]) && j < 15; j++ {
-			m.a[i][j] = true
-			m.b[i][j] = true
+	for i := 0; i < len(m.a); i++ {
+		for j := 0; j < len(m.a[i]); j++ {
+
+			if rand.IntN(100) < LIFE_PERCENTAGE {
+				m.a[i][j] = true
+				m.b[i][j] = true
+			} else {
+				m.a[i][j] = false
+				m.b[i][j] = false
+			}
+
 		}
 	}
 }
@@ -64,7 +73,7 @@ func initialModel() model {
 		b: make([][]bool, 0),
 	}
 
-	m.resizeGrid(20, 20)
+	m.resizeGrid(1000, 1000)
 
 	m.randomGrid()
 
