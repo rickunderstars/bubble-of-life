@@ -15,6 +15,8 @@ const (
 
 type model struct {
 	alive bool
+	w     int
+	h     int
 }
 
 type TickMsg time.Time
@@ -28,6 +30,8 @@ func doTick() tea.Cmd {
 func initialModel() model {
 	return model{
 		alive: true,
+		w:     10,
+		h:     10,
 	}
 }
 
@@ -45,6 +49,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case TickMsg:
 		m.alive = !m.alive
 		return m, doTick()
+	case tea.WindowSizeMsg:
+		m.w = msg.Width
+		m.h = msg.Height
 	}
 
 	return m, nil
@@ -57,14 +64,14 @@ func (m model) View() string {
 		c = CELL
 	}
 
-	for i := 0; i < 5; i++ {
-		for j := 0; j < 5; j++ {
+	for i := 0; i < m.h; i++ {
+		for j := 0; j < m.w/2; j++ {
 			s += c
 		}
-		s += "\n"
+		if i < m.h-1 {
+			s += "\n"
+		}
 	}
-
-	s += "\n\nPress q to quit.\n"
 
 	return s
 }
