@@ -18,8 +18,9 @@ const (
 )
 
 type model struct {
-	a [][]bool
-	b [][]bool
+	a    [][]bool
+	b    [][]bool
+	turn bool
 }
 
 type TickMsg time.Time
@@ -67,10 +68,31 @@ func (m *model) randomGrid() {
 	}
 }
 
+func (m model) countNeighbours(x, y int) int {
+	n := 0
+	h := len(m.a)
+	w := len(m.a[0])
+
+	for i := -1; i <= 1; i++ {
+		for j := -1; j <= 1; j++ {
+			r := ((y+i)%h + h) % h
+			c := ((x+j)%w + w) % w
+			if m.turn && m.a[r][c] {
+				n++
+			} else if m.b[r][c] {
+				n++
+			}
+		}
+	}
+
+	return n
+}
+
 func initialModel() model {
 	m := model{
-		a: make([][]bool, 0),
-		b: make([][]bool, 0),
+		a:    make([][]bool, 0),
+		b:    make([][]bool, 0),
+		turn: true,
 	}
 
 	m.resizeGrid(1000, 1000)
