@@ -13,13 +13,13 @@ import (
 
 const (
 	CELL            = "󱓻 "
-	PERIOD          = 90
+	PERIOD          = 70 
 	LIFE_PERCENTAGE = 30
 )
 
 type model struct {
-	a [][]bool
-	b [][]bool
+	grid   [][][]bool
+	active int
 }
 
 type TickMsg time.Time
@@ -34,49 +34,94 @@ func (m *model) resizeGrid(w, h int) {
 	gridW := w / utf8.RuneCountInString(CELL)
 	gridH := h
 
-	newA := make([][]bool, gridH)
-	newB := make([][]bool, gridH)
-	for i := range newA {
-		newA[i] = make([]bool, gridW)
-	}
-	for i := range newB {
-		newB[i] = make([]bool, gridW)
-	}
-	for i := 0; i < len(m.a) && i < gridH; i++ {
-		for j := 0; j < len(m.a[i]) && j < gridW; j++ {
-			newA[i][j] = m.a[i][j]
-			newB[i][j] = m.b[i][j]
+	g := make([][][]bool, 2)
+	for i := range g {
+		g[i] = make([][]bool, gridH)
+		for k := range g[i] {
+			g[i][k] = make([]bool, gridW)
 		}
 	}
-	m.a, m.b = newA, newB
+
+	if len(m.grid) == 0 {
+		m.grid = g
+		return
+	}
+
+	for k := 0; k < 2; k++ {
+		for i := 0; i < len(m.grid[0]) && i < gridH; i++ {
+			for j := 0; j < len(m.grid[0][i]) && j < gridW; j++ {
+				g[k][i][j] = m.grid[k][i][j]
+			}
+		}
+	}
+	m.grid = g
 }
 
 func (m *model) randomGrid() {
-	for i := 0; i < len(m.a); i++ {
-		for j := 0; j < len(m.a[i]); j++ {
+	for i := 0; i < len(m.grid[0]); i++ {
+		for j := 0; j < len(m.grid[0][i]); j++ {
 
 			if rand.IntN(100) < LIFE_PERCENTAGE {
-				m.a[i][j] = true
-				m.b[i][j] = true
+				m.grid[0][i][j] = true
+				m.grid[1][i][j] = true
 			} else {
-				m.a[i][j] = false
-				m.b[i][j] = false
+				m.grid[0][i][j] = false
+				m.grid[1][i][j] = false
 			}
 
 		}
 	}
 }
 
-func initialModel() model {
-	m := model{
-		a: make([][]bool, 0),
-		b: make([][]bool, 0),
+func (m model) countNeighbours(x, y int) int {
+	n := 0
+	h := len(m.grid[0])
+	w := len(m.grid[0][0])
+
+	for i := -1; i <= 1; i++ {
+		for j := -1; j <= 1; j++ {
+			if i == 0 && j == 0 {
+				continue
+			}
+
+			r := ((y+i)%h + h) % h
+			c := ((x+j)%w + w) % w
+
+			if m.grid[m.active][r][c] {
+				n++
+			}
+		}
 	}
 
-	m.resizeGrid(1000, 1000)
+	return n
+}
 
-	m.randomGrid()
+func (m *model) evolve() {
 
+	world := m.grid[m.active]
+
+	next := (m.active + 1) % 2
+
+	for i := 0; i < len(world); i++ {
+		for j := 0; j < len(world[i]); j++ {
+			n := m.countNeighbours(j, i)
+
+			if world[i][j] {
+				m.grid[next][i][j] = (n == 2 || n == 3)
+			} else {
+				m.grid[next][i][j] = (n == 3)
+			}
+		}
+	}
+
+	m.active = next
+}
+
+func initialModel() model {
+	m := model{
+		grid:   make([][][]bool, 0),
+		active: 0,
+	}
 	return m
 }
 
@@ -88,15 +133,25 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+c", "q":
+		case "ctrl+c", "q", "Q":
 			return m, tea.Quit
+		case "r", "R":
+			m.randomGrid()
+			return m, nil
 		}
 
 	case tea.WindowSizeMsg:
-		m.resizeGrid(msg.Width, msg.Height)
+		if len(m.grid) == 0 {
+			m.resizeGrid(msg.Width, msg.Height)
+			m.randomGrid()
+		} else {
+
+			m.resizeGrid(msg.Width, msg.Height)
+		}
 		return m, nil
 
 	case TickMsg:
+		m.evolve()
 		return m, doTick()
 	}
 
@@ -104,18 +159,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
+
+	if len(m.grid) < 2 {
+		return "Loading..."
+	}
+
 	builder := strings.Builder{}
 
-	for i := 0; i < len(m.a); i++ {
-		for j := 0; j < len(m.a[i]); j++ {
+	for i := 0; i < len(m.grid[m.active]); i++ {
+		for j := 0; j < len(m.grid[m.active][i]); j++ {
 
-			if m.a[i][j] {
+			if m.grid[m.active][i][j] {
 				builder.WriteString(CELL)
 			} else {
 				builder.WriteString("  ")
 			}
 		}
-		if i < len(m.a)-1 {
+		if i < len(m.grid[m.active])-1 {
 			builder.WriteString("\n")
 		}
 	}
