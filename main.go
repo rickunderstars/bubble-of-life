@@ -18,8 +18,7 @@ const (
 )
 
 type model struct {
-	a    [][]bool
-	b    [][]bool
+	grid [][][]bool
 	turn bool
 }
 
@@ -35,33 +34,33 @@ func (m *model) resizeGrid(w, h int) {
 	gridW := w / utf8.RuneCountInString(CELL)
 	gridH := h
 
-	newA := make([][]bool, gridH)
-	newB := make([][]bool, gridH)
-	for i := range newA {
-		newA[i] = make([]bool, gridW)
-	}
-	for i := range newB {
-		newB[i] = make([]bool, gridW)
-	}
-	for i := 0; i < len(m.a) && i < gridH; i++ {
-		for j := 0; j < len(m.a[i]) && j < gridW; j++ {
-			newA[i][j] = m.a[i][j]
-			newB[i][j] = m.b[i][j]
+	g := make([][][]bool, 2)
+	for i := range g {
+		g[i] = make([][]bool, gridH)
+		for k := range g[i] {
+			g[i][k] = make([]bool, gridW)
 		}
 	}
-	m.a, m.b = newA, newB
+	for k := 0; k < 2; k++ {
+		for i := 0; i < len(m.grid[0]) && i < gridH; i++ {
+			for j := 0; j < len(m.grid[0][i]) && j < gridW; j++ {
+				g[k][i][j] = m.grid[k][i][j]
+			}
+		}
+	}
+	m.grid = g
 }
 
 func (m *model) randomGrid() {
-	for i := 0; i < len(m.a); i++ {
-		for j := 0; j < len(m.a[i]); j++ {
+	for i := 0; i < len(m.grid[0]); i++ {
+		for j := 0; j < len(m.grid[0][i]); j++ {
 
 			if rand.IntN(100) < LIFE_PERCENTAGE {
-				m.a[i][j] = true
-				m.b[i][j] = true
+				m.grid[0][i][j] = true
+				m.grid[1][i][j] = true
 			} else {
-				m.a[i][j] = false
-				m.b[i][j] = false
+				m.grid[0][i][j] = false
+				m.grid[1][i][j] = false
 			}
 
 		}
@@ -70,16 +69,16 @@ func (m *model) randomGrid() {
 
 func (m model) countNeighbours(x, y int) int {
 	n := 0
-	h := len(m.a)
-	w := len(m.a[0])
+	h := len(m.grid[0])
+	w := len(m.grid[0][0])
 
 	for i := -1; i <= 1; i++ {
 		for j := -1; j <= 1; j++ {
 			r := ((y+i)%h + h) % h
 			c := ((x+j)%w + w) % w
-			if m.turn && m.a[r][c] {
+			if m.turn && m.grid[0][r][c] {
 				n++
-			} else if m.b[r][c] {
+			} else if m.grid[1][r][c] {
 				n++
 			}
 		}
@@ -88,10 +87,15 @@ func (m model) countNeighbours(x, y int) int {
 	return n
 }
 
+func (m *model) evolve() {
+	if m.turn {
+
+	}
+}
+
 func initialModel() model {
 	m := model{
-		a:    make([][]bool, 0),
-		b:    make([][]bool, 0),
+		grid: make([][][]bool, 2),
 		turn: true,
 	}
 
@@ -128,16 +132,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) View() string {
 	builder := strings.Builder{}
 
-	for i := 0; i < len(m.a); i++ {
-		for j := 0; j < len(m.a[i]); j++ {
+	for i := 0; i < len(m.grid[0]); i++ {
+		for j := 0; j < len(m.grid[0][i]); j++ {
 
-			if m.a[i][j] {
+			if m.grid[0][i][j] {
 				builder.WriteString(CELL)
 			} else {
 				builder.WriteString("  ")
 			}
 		}
-		if i < len(m.a)-1 {
+		if i < len(m.grid[0])-1 {
 			builder.WriteString("\n")
 		}
 	}
