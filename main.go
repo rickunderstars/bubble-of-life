@@ -18,8 +18,8 @@ const (
 )
 
 type model struct {
-	grid [][][]bool
-	turn bool
+	grid   [][][]bool
+	active int
 }
 
 type TickMsg time.Time
@@ -78,11 +78,6 @@ func (m model) countNeighbours(x, y int) int {
 	h := len(m.grid[0])
 	w := len(m.grid[0][0])
 
-	index := 0
-	if !m.turn {
-		index = 1
-	}
-
 	for i := -1; i <= 1; i++ {
 		for j := -1; j <= 1; j++ {
 			if i == 0 && j == 0 {
@@ -92,7 +87,7 @@ func (m model) countNeighbours(x, y int) int {
 			r := ((y+i)%h + h) % h
 			c := ((x+j)%w + w) % w
 
-			if m.grid[index][r][c] {
+			if m.grid[m.active][r][c] {
 				n++
 			}
 		}
@@ -102,12 +97,13 @@ func (m model) countNeighbours(x, y int) int {
 }
 
 func (m *model) evolve() {
+
 }
 
 func initialModel() model {
 	m := model{
-		grid: make([][][]bool, 0),
-		turn: true,
+		grid:   make([][][]bool, 0),
+		active: 0,
 	}
 	return m
 }
@@ -150,23 +146,18 @@ func (m model) View() string {
 		return "Loading..."
 	}
 
-	index := 0
-	if !m.turn {
-		index = 1
-	}
-
 	builder := strings.Builder{}
 
-	for i := 0; i < len(m.grid[index]); i++ {
-		for j := 0; j < len(m.grid[index][i]); j++ {
+	for i := 0; i < len(m.grid[m.active]); i++ {
+		for j := 0; j < len(m.grid[m.active][i]); j++ {
 
-			if m.grid[index][i][j] {
+			if m.grid[m.active][i][j] {
 				builder.WriteString(CELL)
 			} else {
 				builder.WriteString("  ")
 			}
 		}
-		if i < len(m.grid[index])-1 {
+		if i < len(m.grid[m.active])-1 {
 			builder.WriteString("\n")
 		}
 	}
