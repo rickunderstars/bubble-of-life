@@ -41,6 +41,12 @@ func (m *model) resizeGrid(w, h int) {
 			g[i][k] = make([]bool, gridW)
 		}
 	}
+
+	if len(m.grid) == 0 {
+		m.grid = g
+		return
+	}
+
 	for k := 0; k < 2; k++ {
 		for i := 0; i < len(m.grid[0]) && i < gridH; i++ {
 			for j := 0; j < len(m.grid[0][i]) && j < gridW; j++ {
@@ -72,13 +78,21 @@ func (m model) countNeighbours(x, y int) int {
 	h := len(m.grid[0])
 	w := len(m.grid[0][0])
 
+	index := 0
+	if !m.turn {
+		index = 1
+	}
+
 	for i := -1; i <= 1; i++ {
 		for j := -1; j <= 1; j++ {
+			if i == 0 && j == 0 {
+				continue
+			}
+
 			r := ((y+i)%h + h) % h
 			c := ((x+j)%w + w) % w
-			if m.turn && m.grid[0][r][c] {
-				n++
-			} else if m.grid[1][r][c] {
+
+			if m.grid[index][r][c] {
 				n++
 			}
 		}
@@ -88,21 +102,13 @@ func (m model) countNeighbours(x, y int) int {
 }
 
 func (m *model) evolve() {
-	if m.turn {
-
-	}
 }
 
 func initialModel() model {
 	m := model{
-		grid: make([][][]bool, 2),
+		grid: make([][][]bool, 0),
 		turn: true,
 	}
-
-	m.resizeGrid(1000, 1000)
-
-	m.randomGrid()
-
 	return m
 }
 
@@ -114,12 +120,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+c", "q":
+		case "ctrl+c", "q", "Q":
 			return m, tea.Quit
+		case "r", "R":
+			m.randomGrid()
+			return m, nil
 		}
 
 	case tea.WindowSizeMsg:
-		m.resizeGrid(msg.Width, msg.Height)
+		if len(m.grid) == 0 {
+			m.resizeGrid(msg.Width, msg.Height)
+			m.randomGrid()
+		} else {
+
+			m.resizeGrid(msg.Width, msg.Height)
+		}
 		return m, nil
 
 	case TickMsg:
@@ -130,18 +145,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
+
+	if len(m.grid) < 2 {
+		return "Loading..."
+	}
+
+	index := 0
+	if !m.turn {
+		index = 1
+	}
+
 	builder := strings.Builder{}
 
-	for i := 0; i < len(m.grid[0]); i++ {
-		for j := 0; j < len(m.grid[0][i]); j++ {
+	for i := 0; i < len(m.grid[index]); i++ {
+		for j := 0; j < len(m.grid[index][i]); j++ {
 
-			if m.grid[0][i][j] {
+			if m.grid[index][i][j] {
 				builder.WriteString(CELL)
 			} else {
 				builder.WriteString("  ")
 			}
 		}
-		if i < len(m.grid[0])-1 {
+		if i < len(m.grid[index])-1 {
 			builder.WriteString("\n")
 		}
 	}
