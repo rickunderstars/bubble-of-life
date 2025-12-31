@@ -13,7 +13,7 @@ import (
 
 const (
 	CELL            = "󱓻 "
-	PERIOD          = 90
+	PERIOD          = 70 
 	LIFE_PERCENTAGE = 30
 )
 
@@ -98,6 +98,23 @@ func (m model) countNeighbours(x, y int) int {
 
 func (m *model) evolve() {
 
+	world := m.grid[m.active]
+
+	next := (m.active + 1) % 2
+
+	for i := 0; i < len(world); i++ {
+		for j := 0; j < len(world[i]); j++ {
+			n := m.countNeighbours(j, i)
+
+			if world[i][j] {
+				m.grid[next][i][j] = (n == 2 || n == 3)
+			} else {
+				m.grid[next][i][j] = (n == 3)
+			}
+		}
+	}
+
+	m.active = next
 }
 
 func initialModel() model {
@@ -134,6 +151,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case TickMsg:
+		m.evolve()
 		return m, doTick()
 	}
 
