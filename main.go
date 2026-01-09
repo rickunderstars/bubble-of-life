@@ -13,7 +13,7 @@ import (
 
 const (
 	CELL            = "󱓻 "
-	PERIOD          = 70 
+	PERIOD          = 70
 	LIFE_PERCENTAGE = 30
 )
 
